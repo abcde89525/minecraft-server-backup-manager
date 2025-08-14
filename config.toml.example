@@ -1,0 +1,55 @@
+# =======================================================
+#  Minecraft 伺服器 & 備份管理器 - 設定檔 (v15+)
+# =======================================================
+window_title = "My Minecraft Server"
+
+[server]
+# Java 可執行檔絕對路徑
+java_path = ''
+
+# Java 啟動參數，對於 NeoForge/Forge，通常包含 @argfile(@user_jvm_args.txt/@win_args.txt)
+jvm_args = [
+    "-Xms4G",
+    "-Xmx6G",
+    "server.jar"
+]
+
+# 伺服器參數 (例如 nogui)
+server_args = ["nogui"]
+
+# 是否在伺服器停止/崩潰後自動重啟
+auto_restart = true
+
+# 重啟前的延遲秒數
+restart_delay_seconds = 5
+
+[backup]
+# 是否啟用備份功能 (包括啟動時備份和定時備份)
+enabled = true
+
+# 自動備份的時間間隔 (h=小時, m=分鐘, d=天)
+interval = "30m"
+
+# 管理器指令，輸入這些指令時不會轉發給伺服器
+manager_commands = ["backup", "exit"]
+
+# 壓縮等級 (0-9)。0=不壓縮, 1=最快, 9=最高壓縮
+compression_level = 5
+
+# 並行壓縮的執行緒數
+workers = 4
+
+# 需要備份的檔案/資料夾列表
+sources = ["world"]
+
+# 備份時要忽略的檔案/資料夾 (支援 * 萬用字元)
+exclusions = ["logs/*", "cache/*", "*.lock"]
+
+# 備份檔案的儲存位置。 留空則使用預設值 "backups"
+destination = ""
+
+# 保留最近的備份數量。0=不限制
+retention_count = 12
+
+# 備份資料夾允許的最大總大小 (GB)。0=不限制
+max_total_size_gb = 50
