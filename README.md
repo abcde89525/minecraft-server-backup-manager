@@ -1,4 +1,4 @@
-# minecraft-server-backup-manger
+# minecraft-server-backup-manager
 
 一個 Golang 編寫的 主要是自用的 Minecraft伺服器啟動器/異步備份工具，
 用於取代傳統 功能單一的 .bat .sh 啟動腳本。
