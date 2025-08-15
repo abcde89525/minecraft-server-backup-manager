@@ -17,6 +17,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"net/http"
 
 	"github.com/BurntSushi/toml"
 )
@@ -31,14 +32,19 @@ var (
 
 // Config 結構, config.toml 映射
 type Config struct {
-	WindowTitle string `toml:"window_title"`
-	Server      struct {
+	General struct {
+		WindowTitle string `toml:"window_title"`
+		Language    string `toml:"language"`
+	} `toml:"general"`
+
+	Server struct {
 		JavaPath            string   `toml:"java_path"`
 		JvmArgs             []string `toml:"jvm_args"`
 		ServerArgs          []string `toml:"server_args"`
 		AutoRestart         bool     `toml:"auto_restart"`
 		RestartDelaySeconds int      `toml:"restart_delay_seconds"`
 	} `toml:"server"`
+
 	Backup struct {
 		Enabled           bool     `toml:"enabled"`
 		Interval          string   `toml:"interval"`
@@ -51,6 +57,22 @@ type Config struct {
 		MaxTotalSizeGB    int      `toml:"max_total_size_gb"`
 		Workers           int      `toml:"workers"`
 	} `toml:"backup"`
+
+	Discord struct {
+		Enabled             bool     `toml:"enabled"`
+		BotToken            string   `toml:"bot_token"`
+		ChannelID           string   `toml:"channel_id"`
+		ForwardEvents       []string `toml:"forward_events"`
+		ForwardFromDiscord  bool     `toml:"forward_from_discord"`
+		IngameFormat        string   `toml:"ingame_format"`
+		Patterns            struct {
+			Chat        string `toml:"chat"`
+			Join        string `toml:"join"`
+			Leave       string `toml:"leave"`
+			Death       string `toml:"death"`
+			Advancement string `toml:"advancement"`
+		} `toml:"patterns"`
+	} `toml:"discord"`
 }
 
 // 初始化
@@ -295,9 +317,7 @@ func runBackupScheduler(ctx context.Context) {
 	}
 }
 
-// =======================================================
-// 核心邏輯 - 備份實現
-// =======================================================
+// 備份功能
 
 // runBackup 是備份任務的入口點，帶鎖防止重疊
 func runBackup() {
@@ -427,9 +447,7 @@ func addFileToZip(zipWriter *zip.Writer, filePath string, m *sync.Mutex) error {
 	return err
 }
 
-// =======================================================
 // 輔助函式
-// =======================================================
 
 // collectFiles 收集所有需要備份的檔案路徑
 func collectFiles() ([]string, error) {
@@ -540,7 +558,6 @@ func cleanupBackups() {
 	}
 }
 
-// mustGetwd 包裝 os.Getwd()，失敗則 panic
 func mustGetwd() string {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -549,7 +566,6 @@ func mustGetwd() string {
 	return wd
 }
 
-// setupLogger 初始化日誌，同時輸出到檔案和主控台
 func setupLogger() error {
 	var err error
 	logFile, err = os.OpenFile("manager.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -562,9 +578,7 @@ func setupLogger() error {
 	return nil
 }
 
-// =======================================================
 // 設定相關
-// =======================================================
 
 // loadConfig 讀取並解析 config.toml
 func loadConfig() error {
@@ -585,12 +599,10 @@ func loadConfig() error {
 // normalizeConfigPathsAndDefaults 將相對路徑轉換為絕對路徑並設定預設值
 func normalizeConfigPathsAndDefaults() error {
 	workDir := mustGetwd()
-	// Java Path
 	if config.Server.JavaPath == "" {
 		return fmt.Errorf("[server.java_path] 是必要選項，不能為空")
 	}
 	config.Server.JavaPath = filepath.Clean(config.Server.JavaPath)
-	// Backup Sources
 	if len(config.Backup.Sources) == 0 {
 		config.Backup.Sources = []string{"world"}
 	}
@@ -599,7 +611,6 @@ func normalizeConfigPathsAndDefaults() error {
 			config.Backup.Sources[i] = filepath.Join(workDir, src)
 		}
 	}
-	// Backup Destination
 	dest := config.Backup.Destination
 	if dest == "" {
 		dest = "backups"
@@ -610,7 +621,6 @@ func normalizeConfigPathsAndDefaults() error {
 	if err := os.MkdirAll(config.Backup.Destination, 0755); err != nil {
 		return fmt.Errorf("無法建立備份目錄 %s: %v", config.Backup.Destination, err)
 	}
-	// Other defaults
 	if config.Backup.Workers <= 0 {
 		config.Backup.Workers = 4
 	}
@@ -623,64 +633,37 @@ func normalizeConfigPathsAndDefaults() error {
 	return nil
 }
 
-// createExampleConfig 生成一個帶註釋的 TOML 設定檔範本
+// createExampleConfig 生成設定檔範本
 func createExampleConfig(path string) error {
-	content := `
-# =======================================================
-#  Minecraft 伺服器 & 備份管理器 - 設定檔 (v15+)
-# =======================================================
-window_title = "My Minecraft Server"
+	// GitHub URL
+	url := "https://raw.githubusercontent.com/abcde89525/minecraft-server-backup-manger/main/config.toml.example"
+	
+	log.Printf("正在從 %s 下載設定檔範本...", url)
 
-[server]
-# Java 可執行檔絕對路徑
-java_path = ''
+	// SEND HTTP GET REQUEST
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("下載設定檔範本失敗: %v", err)
+	}
+	defer resp.Body.Close()
 
-# Java 啟動參數，對於 NeoForge/Forge，通常包含 @argfile(@user_jvm_args.txt/@win_args.txt)
-jvm_args = [
-    "-Xms4G",
-    "-Xmx6G",
-    "server.jar"
-]
+	// CHECK HTTP CODE
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("下載設定檔範本失敗: %s", resp.Status)
+	}
 
-# 伺服器參數 (例如 nogui)
-server_args = ["nogui"]
+	// CHECK RESPONSE CONTENT
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("讀取設定檔範本內容失敗: %v", err)
+	}
 
-# 是否在伺服器停止/崩潰後自動重啟
-auto_restart = true
+	// SAVE FILE
+	err = os.WriteFile(path, body, 0644)
+	if err != nil {
+		return fmt.Errorf("寫入設定檔範本到磁碟失敗: %v", err)
+	}
 
-# 重啟前的延遲秒數
-restart_delay_seconds = 5
-
-[backup]
-# 是否啟用備份功能 (包括啟動時備份和定時備份)
-enabled = true
-
-# 自動備份的時間間隔 (h=小時, m=分鐘, d=天)
-interval = "30m"
-
-# 管理器指令，輸入這些指令時不會轉發給伺服器
-manager_commands = ["backup", "exit"]
-
-# 壓縮等級 (0-9)。0=不壓縮, 1=最快, 9=最高壓縮
-compression_level = 5
-
-# 並行壓縮的執行緒數
-workers = 4
-
-# 需要備份的檔案/資料夾列表
-sources = ["world"]
-
-# 備份時要忽略的檔案/資料夾 (支援 * 萬用字元)
-exclusions = ["logs/*", "cache/*", "*.lock"]
-
-# 備份檔案的儲存位置。 留空則使用預設值 "backups"
-destination = ""
-
-# 保留最近的備份數量。0=不限制
-retention_count = 12
-
-# 備份資料夾允許的最大總大小 (GB)。0=不限制
-max_total_size_gb = 50
-`
-	return os.WriteFile(path, []byte(strings.TrimSpace(content)), 0644)
+	log.Printf("設定檔範本已成功儲存至: %s", path)
+	return nil
 }
