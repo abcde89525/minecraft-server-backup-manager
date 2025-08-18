@@ -1,110 +1,111 @@
 # ===================================================================
-#  Minecraft 伺服器 & 備份管理器 - 設定檔 v2.0
+#  Minecraft Server & Backup Manager - Config File v2.0
 # ===================================================================
 
 # -------------------------------------------------------------------
 [general]
 
-# 視窗標題
-window_title = 'My Minecraft Server'
+# Window Title
+window_title = 'TRY TO CHANGE THIS'
 
-# 語言設定
+# Language Setting
 language = ''
 
 # -------------------------------------------------------------------
 [server]
 
-# Java 可執行檔絕對路徑
+# Absolute path to the Java executable
 java_path = ''
 
-# Java 啟動參數，對於 NeoForge/Forge，通常包含 @argfile(@user_jvm_args.txt/@win_args.txt)
+# Java startup arguments. For NeoForge/Forge, this often includes an @argfile (e.g., @user_jvm_args.txt/@win_args.txt)
 jvm_args = [
     '-Xms4G',
     '-Xmx6G',
-    'server.jar'
+    '-jar'
 ]
 
-# 伺服器參數
+# Server arguments
 server_args = ['nogui']
 
-# 是否在伺服器停止/崩潰後自動重啟
+# Whether to automatically restart the server after it stops or crashes
 auto_restart = true
 
-# 重啟前的延遲秒數
+# Delay in seconds before restarting
 restart_delay_seconds = 5
 
 # -------------------------------------------------------------------
 [backup]
 
-# 是否啟用備份功能 (包括啟動時備份和定時備份)
+# Enable backup functionality (includes backup on startup and scheduled backups)
 enabled = true
 
-# 自動備份的時間間隔 (m=分鐘, h=小時, d=天)
+# Auto-backup interval (m=minutes, h=hours, d=days)
 interval = '30m'
 
-# 管理器指令，輸入這些指令時不會轉發給伺服器
+# Manager commands. These commands will not be forwarded to the server console when typed.
 manager_commands = ['backup', 'exit']
 
-# 壓縮等級 (0-9) 0=不壓縮, 1=最快, 9=最高壓縮
+# Compression level (0-9). 0=no compression, 1=fastest, 9=highest compression
 compression_level = 5
 
-# 並行壓縮的執行緒數
-workers = 4
+# Number of threads for parallel compression
+workers = 8
 
-# 需要備份的檔案/資料夾列表
+# List of files/folders to back up
 sources = ['world']
 
-# 備份時要忽略的檔案/資料夾 (支援 * 萬用字元)
+# Files/folders to ignore during backup (supports * wildcard)
 exclusions = ['logs/*', 'cache/*', '*.lock']
 
-# 備份檔案的儲存位置 預設值 "backups"
+# Storage location for backup files. Default is "backups"
 destination = ''
 
-# 保留最近的備份數量 0=不限制
+# Number of recent backups to keep. 0=unlimited
 retention_count = 12
 
-# 備份資料夾允許的最大總大小 (GB) 0=不限制
-max_total_size_gb = 50
+# Maximum total size of the backup folder in GB. 0=unlimited
+max_total_size_gb = 80
 
+# under this line is not working now
 # -------------------------------------------------------------------
 [discord]
 
-# 是否啟用 Discord 機器人功能
+# Enable Discord bot functionality
 enabled = false
 
-# [必要] 從 Discord Bot Token
+# [Required] Discord Bot Token
 bot_token = ''
 
-# [必要] 監聽/發送 頻道 ID
+# [Required] Channel ID to listen to and send messages in
 channel_id = ''
 
-# --- 訊息轉發設定 ---
+# --- Message Forwarding Settings ---
 
-# 轉發事件類型 (game to discord)
-# 可選值: 'chat', 'join', 'leave', 'death', 'advancement'
+# Event types to forward (game to Discord)
+# Possible values: 'chat', 'join', 'leave', 'death', 'advancement'
 forward_events = ['chat', 'join', 'leave']
 
-# 轉發文字訊息 (discord to game)
+# Forward text messages (Discord to game)
 forward_from_discord = true
 
-# 從 Discord 轉發到遊戲內訊息的格式 (不要修改此設置 除非你知道你在做什麼)
+# Format for messages forwarded from Discord to the game. (Do not modify this unless you know what you are doing)
 ingame_format = '[Discord] <{{ .Username }}> {{ .Message }}'
 
-# --- 正規表示式設定 ---
-# 用於從伺服器日誌中提取資訊
+# --- Regex Pattern Settings ---
+# Used to extract information from the server log
 
 [discord.patterns]
-# 玩家聊天捕獲
+# Player chat capture
 chat = ''
 
-# 玩家加入捕獲
+# Player join capture
 join = ''
 
-# 玩家離開捕獲
+# Player leave capture
 leave = ''
 
-# 玩家死亡捕獲
+# Player death capture
 death = ''
 
-# 玩家獲得成就捕獲
+# Player advancement capture
 advancement = ''
