@@ -35,7 +35,7 @@
   ```
   3. 編譯
   ```bash
-    go build main.go
+    go build
   ```
 
 ### 首次執行
